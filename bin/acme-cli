@@ -376,18 +376,18 @@ __certbot_test() {
 }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 __certbot_renew() {
-  printf_purple "Attempting to renew certificates"
   __cert_dir_exists || [ -f "/etc/letsencrypt/renewal/$ACME_CLI_CERT_DIR.conf" ] || [ -f "/etc/letsencrypt/renewal/domain.conf" ] || return 1
   __certbot_test renew || printf_exit "certbot test has failed"
+  printf_purple "Attempting to renew certificates"
   certbot renew $ACME_CLI_SERVER_OPTIONS -n --agree-tos --expand $ACME_CLI_OPTIONS --dns-rfc2136 --dns-rfc2136-credentials $ACME_CLI_CONF_FILE 2>"$ACME_CLI_LOG_ERROR_FILE" >/dev/null
   __certbot_finalize $?
 }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 __certbot_create() {
   __cert_dir_exists && return 0
-  printf_purple "Attempting to create certificates"
-  __certbot_test certonly || printf_exit "certbot test has failed"
   [ "$ACME_CLI_INIT" = "yes" ] && rm -Rf "/etc/letsencrypt/live"/*
+  __certbot_test certonly || printf_exit "certbot test has failed"
+  printf_purple "Attempting to create certificates"
   certbot certonly $ACME_CLI_SERVER_OPTIONS -n --agree-tos $ACME_CLI_SET_EMAIL_OPTIONS --expand $ACME_CLI_OPTIONS --dns-rfc2136 --dns-rfc2136-credentials $ACME_CLI_CONF_FILE $ACME_CLI_DOMAIN_LIST 2>"$ACME_CLI_LOG_ERROR_FILE" >/dev/null
   __certbot_finalize $?
 }
@@ -1009,6 +1009,7 @@ rsync)
   exit $?
   ;;
 renew)
+  shift 1
   __certbot_renew
   exit $?
   ;;
@@ -1027,6 +1028,7 @@ modify)
   ;;
 *)
   [ "$1" = "new" ] && shift 1
+  [ "$1" = "create" ] && shift 1
   ACME_CLI_DOMAIN_LIST="${*:-$ACME_CLI_DOMAIN_LIST}"
   [ -n "$ACME_CLI_DOMAINS_NEW" ] || __gen_config &>/dev/null
   __generate_domain_list && if [ -d "/etc/letsencrypt/live/$ACME_CLI_CERT_DIR" ]; then
